@@ -1,0 +1,49 @@
+.env
+.cache/
+.DS_Store
+.pythonlibs/
+.upm/
+.agents/
+.local/
+
+# Logs
+log.txt
+*.log
+khushi_log.txt
+unknown_errors.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+myenv/
+venv/
+
+# Sessions
+*.session
+*.session-journal
+
+# Downloads / temp files
+downloads/
+cache/
+raw_files/
+couples/
+
+# Cookies (sensitive)
+youtube_cookies.txt
+cookies.txt
+
+# Replit internals
+replit.md
+package-lock.json
+attached_assets/
+
+# Push scripts (contain credentials)
+push_to_github.sh
+
+# Nested junk assets
+KHUSHI/assets/assets/annie/
+KHUSHI/assets/assets/cookies.txt
