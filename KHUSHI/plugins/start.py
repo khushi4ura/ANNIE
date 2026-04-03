@@ -20,6 +20,7 @@ from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from KHUSHI import app
 from KHUSHI.utils.database import get_lang
 from KHUSHI.utils.inline import InlineKeyboardButton
+from KHUSHI.utils.reactions import react_to_command
 from KHUSHI.utils.inline.help import first_page, second_page, help_back_markup, private_help_panel
 from config import BANNED_USERS, HELP_IMG_URL, START_IMGS, SUPPORT_CHAT, SUPPORT_CHANNEL
 from strings import get_string, helpers
@@ -129,6 +130,72 @@ async def _try_send_photo(client, chat_id, photo_url, caption, markup) -> bool:
 
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 async def khushi_start_private(client, message: Message):
+    await react_to_command(message, emoji="🍓")
+    param = message.command[1] if len(message.command) > 1 else None
+
+    # ── /start info_<videoid> — show song details in DM ──────────────────────
+    if param and param.startswith("info_"):
+        vidid = param[5:]
+        try:
+            from KHUSHI import YouTube
+            title, duration_min, duration_sec, thumbnail, _ = await YouTube.details(
+                vidid, videoid=True
+            )
+        except Exception:
+            title, duration_min, thumbnail = None, None, None
+
+        if title:
+            info_caption = (
+                f"<blockquote>{_BRAND}</blockquote>\n\n"
+                f"<blockquote>"
+                f"<emoji id='5463107823946717464'>🎵</emoji> <b>{title}</b>\n\n"
+                f"<emoji id='5972072533833289156'>🔹</emoji> <b>Duration:</b> <code>{duration_min}</code>\n"
+                f"<emoji id='5972072533833289156'>🔹</emoji> <b>YouTube ID:</b> <code>{vidid}</code>"
+                f"</blockquote>"
+            )
+            info_markup = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "˹ʏᴏᴜᴛᴜʙᴇ˼",
+                        url=f"https://youtu.be/{vidid}",
+                        style="danger",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        "˹ᴀᴅᴅ ᴍᴇ ᴛᴏ ɢʀᴏᴜᴩ˼",
+                        url=f"https://t.me/{app.username}?startgroup=true",
+                        style="primary",
+                    ),
+                ],
+            ])
+            sent = await _try_send_photo(client, message.chat.id, thumbnail or random.choice(START_IMGS), info_caption, info_markup)
+            if not sent:
+                await message.reply_text(info_caption, reply_markup=info_markup, disable_web_page_preview=True)
+        else:
+            await message.reply_text(
+                f"<blockquote>{_BRAND}</blockquote>\n\n"
+                f"<blockquote>❌ ꜱᴏɴɢ ɪɴꜰᴏ ɴᴏᴛ ꜰᴏᴜɴᴅ.</blockquote>",
+                disable_web_page_preview=True,
+            )
+        return
+
+    # ── /start help — open help menu in DM ───────────────────────────────────
+    if param == "help" or param == "start":
+        lang = await _get_lang(message.from_user.id)
+        _ = get_string(lang)
+        keyboard = first_page(_)
+        caption = _["help_1"].format(SUPPORT_CHAT)
+        sent = await _try_send_photo(client, message.chat.id, HELP_IMG_URL, caption, keyboard)
+        if not sent:
+            await message.reply_text(
+                caption,
+                reply_markup=keyboard,
+                disable_web_page_preview=True,
+            )
+        return
+
+    # ── Normal /start ─────────────────────────────────────────────────────────
     caption = (
         f"<blockquote>{_BRAND}</blockquote>\n\n"
         + START_TEXT.format(mention=message.from_user.mention, bot=app.mention)
@@ -232,6 +299,7 @@ async def bot_added_to_group(client, message: Message):
 
 @app.on_message(filters.command(["help"]) & filters.private & ~BANNED_USERS)
 async def khushi_help_pm(client, message: Message):
+    await react_to_command(message, emoji="🍓")
     lang = await _get_lang(message.from_user.id)
     _ = get_string(lang)
     keyboard = first_page(_)
@@ -253,6 +321,7 @@ async def khushi_help_pm(client, message: Message):
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)
 async def khushi_help_group(client, message: Message):
+    await react_to_command(message, emoji="🍓")
     lang = await _get_lang(message.from_user.id)
     _ = get_string(lang)
     markup = InlineKeyboardMarkup(private_help_panel(_))
