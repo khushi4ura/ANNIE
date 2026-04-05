@@ -1,7 +1,7 @@
 # KHUSHI — Telegram Music Bot
 
 ## Overview
-KHUSHI is a feature-rich Telegram music bot built with Pyrogram + PyTgCalls targeting Indian users. It streams audio/video in group voice chats with a focus on Hindi/Punjabi/Bollywood music. Supports YouTube, Spotify, SoundCloud, Apple Music, and Resso.
+KHUSHI (Annie Music Bot) is a feature-rich Telegram music bot built with Pyrogram + PyTgCalls targeting Indian users. It streams audio/video in group voice chats with a focus on Hindi/Punjabi/Bollywood music. Supports YouTube, Spotify, SoundCloud, Apple Music, and Resso. Includes a built-in web player (Mini App) at t.me/VcAnnieBot/annie with song suggestions, trending music, search, liked songs, and download.
 
 ## Project Structure
 ```
@@ -30,6 +30,14 @@ config.py          # Configuration from environment
 
 ## YouTube Streaming (No Cookies Needed)
 Uses yt-dlp with `android_vr` + `ios_downgraded` player clients — works on Replit/cloud without any cookies or COOKIE_URL. The bot's internal API at port 8080 (`/api/yturl`) is used for fast stream URL fetching.
+
+## Web Player — Ultra-Fast Proxy Stream (`/api/proxy`)
+The web player at port 5000 now uses a **proxy streaming** endpoint:
+- `/api/proxy?v={videoId}` — extracts the YouTube CDN URL and pipes audio directly to the browser (no local download, sub-second start)
+- Falls back to `/api/audio` (local file) if already cached on disk
+- Supports byte-range requests for seeking
+- CDN URLs cached in-process with auto-expiry to avoid repeated extraction
+- File deletion: proxy mode never writes to disk; `/api/audio` fallback uses existing disk-management logic
 
 ## YouTube Search — Permanent Free Solution (Invidious API)
 Search is powered by **Invidious** — a free, open-source YouTube frontend with a public API.
@@ -101,6 +109,13 @@ All `from KHUSHI import app/userbot` at module level were converted to lazy impo
 - **8/8 plugins loading successfully**
 - **Workflow**: "KHUSHI Bot" — `python -m KHUSHI`
 - **Web player**: KHUSHI/web/index.html
+
+## Bug Fixes (April 2026 — Session 4)
+- **Channel play fixed** (`/cplay`, `/cvplay`): `_handle_play` in `KHUSHI/plugins/play.py` now detects channel-prefixed commands, resolves the linked channel ID via `get_cmode`, and correctly routes VC operations (join_call, put_queue, is_active_chat, db) to the channel while keeping notifications in the group. Variables renamed: `msg_chat_id` (group) and `vc_chat_id` (channel or group).
+- **Seek `DocumentInvalid` fixed**: `kseek` handler now blocks seeking on live streams (checks `dur == "Live"` or `file.startswith("live_")`). Exception handler distinguishes `DocumentInvalid`, `NotInCallError`, `ConnectionNotFound`, `FileError` and `AssistantErr` with specific human-readable messages.
+- **Bot auto-suggestions improved**: `_fetch_reco_songs` in `KHUSHI/core/call.py` now uses `yt_api_related_videos` (Invidious `recommendedVideos` — actual YouTube algorithm) as the primary source for post-queue suggestions. Keyword search is now a secondary fallback, static pool is the last resort.
+- **Web player suggestions improved**: `/api/suggested` endpoint in `KHUSHI/utils/webserver.py` now uses `yt_api_related_videos` as the primary source when a video ID is present. Keyword search and trending are secondary/tertiary fallbacks.
+- **`yt_api_related_videos` added** to `KHUSHI/utils/yt_api.py`: fetches `recommendedVideos` from Invidious for a given video ID, filters live streams and long compilations (>12 min).
 
 ## Bug Fixes (March 2026 — Session 2)
 - **`/start` crash fix**: `asyncio.gather(get_served_chats, get_served_users, ...)` wrapped in try-except — MongoDB DNS failures no longer crash the handler, bot sends start message with fallback stats
